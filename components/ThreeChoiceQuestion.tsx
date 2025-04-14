@@ -86,11 +86,11 @@ const ThreeChoiceQuestion: React.FC<Props> = ({
         ))}
       </View>
 
-      {isAnswered && (
-        <Text style={styles.feedbackText}>
+      {/* {isAnswered && (
+          <Text style={styles.feedbackText}>
           {isCorrect ? 'Correct!' : `Incorrect. The correct answer was: ${question.correctAnswer}`}
-        </Text>
-      )}
+          </Text>
+          )} */}
     </View>
   );
 };
@@ -98,31 +98,34 @@ const ThreeChoiceQuestion: React.FC<Props> = ({
 const styles = StyleSheet.create({
   container: {
     padding: 20,
+      width: '100%',
     borderRadius: 8,
     backgroundColor: '#f0f0f0',
     marginBottom: 20,
   },
   questionText: {
-    fontSize: 18,
+    fontSize: 80,
     fontWeight: 'bold',
     marginBottom: 15,
     textAlign: 'center',
   },
   optionsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+      /* flexDirection: 'row',
+       * justifyContent: 'space-around', */
+      alignItems: 'center',
   },
   optionButton: {
     backgroundColor: '#e0e0e0',
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    borderRadius: 6,
-    flex: 1,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+      width: '80%',
+      marginBottom: 10,
     marginHorizontal: 5,
     alignItems: 'center',
   },
   optionText: {
-    fontSize: 16,
+    fontSize: 40,
   },
   selectedOptionText: {
     fontWeight: 'bold',

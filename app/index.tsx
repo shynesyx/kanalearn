@@ -6,7 +6,6 @@ import KanaQuiz from './KanaQuiz'; // Correct import path
 export default function HomeScreen() {
     return (
         <View style={styles.container}>
-            <Text>Welcome to the Kana Learning App!</Text>
             <KanaQuiz />
         </View>
     );
