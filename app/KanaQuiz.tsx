@@ -4,8 +4,22 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import ThreeChoiceQuestion from '../components/ThreeChoiceQuestion';
 import { hiragana, katakana, hiraganaWithDakutenHandakuten, katakanaWithDakutenHandakuten, hiraganaYoon, katakanaYoon, KanaCharacter } from '../data/kanaData';
 import ResetDataButton from '../components/ResetProgressButton';
+import ProgressBar from '../components/ProgressBar';
 
-// ... (QuizState and Question interfaces remain similar, but Question will need targetKana)
+interface QuizState {
+  currentQuestion: Question | null;
+  questionIndex: number;
+  score: number;
+  showScore: boolean;
+  hasAnswered: boolean;
+}
+
+interface Question {
+  questionText: string;
+  correctAnswer: string;
+  options: string[];
+  targetKana: string;
+}
 
 interface KanaLearningData {
   character: string;
@@ -38,7 +52,7 @@ const KanaQuiz = () => {
   const [currentReviewItems, setCurrentReviewItems] = useState<KanaCharacter[]>([]);
   const [loading, setLoading] = useState(true);
   const [completedCount, setCompletedCount] = useState(0);
-    const [resetTrigger, setResetTrigger] = useState(false);
+  const [resetTrigger, setResetTrigger] = useState(false);
   const totalKanaCount = allKana.length;
 
   useEffect(() => {
@@ -49,20 +63,25 @@ const KanaQuiz = () => {
     if (learningData.length > 0) {
       scheduleReviews();
       setLoading(false);
+      setCompletedCount(learningData.filter(item => item.isCompleted).length);
     }
-  }, [learningData]);
-
-  useEffect(() => {
-      if (learningData.length > 0) {
-          setCompletedCount(learningData.filter(item => item.isCompleted).length);
-      }
   }, [learningData]);
 
   const loadLearningData = async () => {
     try {
       const storedData = await AsyncStorage.getItem(LEARNING_DATA_KEY);
       if (storedData) {
-        setLearningData(JSON.parse(storedData));
+        const parsedData: KanaLearningData[] = JSON.parse(storedData);
+        const processedData: KanaLearningData[] = parsedData.map(item => ({
+          ...item,
+          lastReviewed: item.lastReviewed ? new Date(item.lastReviewed) : null,
+          interval: typeof item.interval === 'string' ? parseInt(item.interval, 10) : item.interval,
+          correctStreak: typeof item.correctStreak === 'string' ? parseInt(item.correctStreak, 10) : item.correctStreak,
+          incorrectStreak: typeof item.incorrectStreak === 'string' ? parseInt(item.incorrectStreak, 10) : item.incorrectStreak,
+          completionCount: typeof item.completionCount === 'string' ? parseInt(item.completionCount, 10) : item.completionCount,
+          isCompleted: typeof item.isCompleted === 'string' ? item.isCompleted === 'true' : item.isCompleted,
+        }));
+        setLearningData(processedData);
       } else {
         initializeLearningData();
       }
@@ -80,6 +99,24 @@ const KanaQuiz = () => {
     }
   };
 
+  const determineTargetSet = (character: string): "hiragana" | "katakana" | "dakuten" | "yoon" | null => {
+    if (hiragana.some(h => h.character === character)) {
+      return "hiragana";
+    }
+    if (katakana.some(k => k.character === character)) {
+      return "katakana";
+    }
+    if (hiraganaWithDakutenHandakuten.some(d => d.character === character) ||
+      katakanaWithDakutenHandakuten.some(d => d.character === character)) {
+      return "dakuten";
+    }
+    if (hiraganaYoon.some(y => y.character === character) ||
+      katakanaYoon.some(y => y.character === character)) {
+      return "yoon";
+    }
+    return null; // Or potentially another default value if appropriate
+  };
+
   const initializeLearningData = () => {
     const initialData = allKana.map(kana => ({
       character: kana.character,
@@ -89,26 +126,31 @@ const KanaQuiz = () => {
       interval: 0, // Start with 0 interval for initial review
       completionCount: 0,
       isCompleted: false,
-      targetSet: hiraganaChars.includes(kana.character) ? 'hiragana' :
-                 katakanaChars.includes(kana.character) ? 'katakana' :
-                 dakutenChars.includes(kana.character) ? 'dakuten' :
-                 yoonChars.includes(kana.character) ? 'yoon' : null,
+      targetSet: determineTargetSet(kana.character),
     }));
     setLearningData(initialData);
   };
 
-    const handleResetData = async () => {
-        try {
-            await AsyncStorage.removeItem(LEARNING_DATA_KEY);
-            setLearningData([]); // Clear local state immediately
-            setCompletedCount(0); // Reset the completed count
-            setResetTrigger(prev => !prev); // Trigger a re-load (which will re-initialize if needed)
-            Alert.alert('Success', 'Learning data has been reset.');
-        } catch (error) {
-            Alert.alert('Error', 'Failed to reset learning data.');
-            console.error('Error resetting learning data:', error);
-        }
-    };
+  const handleResetData = async () => {
+    try {
+      await AsyncStorage.removeItem(LEARNING_DATA_KEY);
+      setLearningData([]); // Clear local state immediately
+      setCompletedCount(0); // Reset the completed count
+      setResetTrigger(prev => !prev); // Trigger a re-load (which will re-initialize if needed)
+      // Reset quizState to its initial values
+      setQuizState({
+        currentQuestion: null,
+        questionIndex: 0,
+        score: 0,
+        showScore: false,
+        hasAnswered: false,
+      });
+
+      console.log('KanaQuiz: Success!! Learning data has been reset.');
+    } catch (error) {
+      console.error('KanaQuiz: Error resetting learning data:', error);
+    }
+  };
 
   const getActiveTargetSet = (): KanaLearningData[] => {
     const completedHiragana = learningData.filter(item => item.targetSet === 'hiragana' && item.isCompleted).length === hiraganaChars.length;
@@ -118,6 +160,7 @@ const KanaQuiz = () => {
     if (!completedHiragana) return learningData.filter(item => item.targetSet === 'hiragana' && !item.isCompleted);
     if (!completedKatakana) return learningData.filter(item => item.targetSet === 'katakana' && !item.isCompleted);
     if (!completedDakuten) return learningData.filter(item => item.targetSet === 'dakuten' && !item.isCompleted);
+
     return learningData.filter(item => item.targetSet === 'yoon' && !item.isCompleted);
   };
 
@@ -130,8 +173,8 @@ const KanaQuiz = () => {
         if (item.isCompleted) return false;
         if (!item.lastReviewed) return true; // Review new items
 
-        const nextReviewTime = item.lastReviewed + item.interval;
-        return nextReviewTime <= now;
+        const nextReviewTime = new Date(item.lastReviewed.getTime() + item.interval);
+        return nextReviewTime.getTime() <= now;
       })
       .map(item => allKana.find(k => k.character === item.character)!)
       .filter(Boolean);
@@ -214,15 +257,15 @@ const KanaQuiz = () => {
     setQuizState(prevState => ({ ...prevState, hasAnswered: true }));
   };
 
-  const nextQuestion = () => {
-    if (quizState.hasAnswered && quizState.currentQuestion) {
-      scheduleReviews();
-      const next = getNextQuestion();
-      setQuizState(prevState => ({ ...prevState, currentQuestion: next, hasAnswered: false }));
-    } else if (!quizState.hasAnswered) {
-      alert('Please select an answer first.');
-    }
-  };
+  /* const nextQuestion = () => {
+   *   if (quizState.hasAnswered && quizState.currentQuestion) {
+   *     scheduleReviews();
+   *     const next = getNextQuestion();
+   *     setQuizState(prevState => ({ ...prevState, currentQuestion: next, hasAnswered: false }));
+   *   } else if (!quizState.hasAnswered) {
+   *     alert('Please select an answer first.');
+   *   }
+   * }; */
 
   const updateLearningData = (kanaCharacter: string | undefined, isCorrect: boolean) => {
     if (!kanaCharacter) return;
@@ -232,7 +275,7 @@ const KanaQuiz = () => {
         if (item.character === kanaCharacter) {
           const updatedItem = { ...item };
           const now = new Date().getTime();
-          updatedItem.lastReviewed = now;
+          updatedItem.lastReviewed = new Date(now);
 
           if (isCorrect) {
             updatedItem.correctStreak++;
@@ -240,12 +283,12 @@ const KanaQuiz = () => {
             updatedItem.completionCount++;
             // Exponential interval increase
             if (updatedItem.interval === 0) {
-              updatedItem.interval = 5 * 60 * 60 * 1000; // 5 hours for the first correct
+              updatedItem.interval = 10 * 60 * 1000; // 10 minutes for the first correct
             } else {
               updatedItem.interval *= 2;
             }
             // Completion rule
-            if (updatedItem.correctStreak >= 5 || updatedItem.interval > 5 * 60 * 60 * 1000) { // 5 hours
+            if (updatedItem.correctStreak >= 10 || updatedItem.interval > 10 * 24 * 60 * 60 * 1000) { // 10 days
               updatedItem.isCompleted = true;
             }
           } else {
@@ -262,15 +305,14 @@ const KanaQuiz = () => {
       })
     );
     saveLearningData();
-    scheduleReviews();
   };
 
-  const resetQuiz = () => {
-    initializeLearningData();
-    saveLearningData();
-    scheduleReviews();
-    setQuizState({ currentQuestion: null, questionIndex: 0, score: 0, showScore: false, hasAnswered: false });
-  };
+  // const resetQuiz = () => {
+  //   initializeLearningData();
+  //   saveLearningData();
+  //   scheduleReviews();
+  //   setQuizState({ currentQuestion: null, questionIndex: 0, score: 0, showScore: false, hasAnswered: false });
+  // };
 
   if (loading) {
     return (
@@ -281,50 +323,30 @@ const KanaQuiz = () => {
     );
   }
 
-  if (quizState.showScore) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.scoreText}>Quiz Finished!</Text>
-        <Text>Your score: {quizState.score} / {quizState.questionIndex -1}</Text>
-        <Button title="Restart Quiz" onPress={resetQuiz} />
-      </View>
-    );
-  }
+  // if (quizState.showScore) {
+  //   return (
+  //     <View style={styles.container}>
+  //       <Text style={styles.scoreText}>Quiz Finished!</Text>
+  //       <Text>Your score: {quizState.score} / {quizState.questionIndex - 1}</Text>
+  //       <Button title="Restart Quiz" onPress={resetQuiz} />
+  //     </View>
+  //   );
+  // }
 
   if (quizState.currentQuestion) {
-      const progress = completedCount / totalKanaCount;
-      const progressPercentage = Math.round(progress * 100);
-      const progressText = `${completedCount} / ${totalKanaCount}`;
-
-      return (
-          <View style={styles.container}>
-              <View style={styles.progressBarContainer}>
-                  {Platform.OS === 'android' ? (
-                      <ProgressBarAndroid
-                          styleAttr="Horizontal"
-                          progress={progress}
-                          indeterminate={false}
-                          style={styles.progressBar}
-                      />
-                  ) : (
-                      <View style={styles.progressBarBackground}>
-                      <View style={[styles.progressBarFill, { width: `${progressPercentage}%` }]} />
-                      <View style={styles.progressTextInside}>
-                          <Text style={{ color: 'white', fontWeight: 'bold' }}>{progressText}</Text>
-                      </View>
-                      </View>
-                  )}
-              </View>
-              <ThreeChoiceQuestion
-                  question={quizState.currentQuestion}
-                  onCorrectAnswer={() => handleCorrectAnswer(quizState.currentQuestion?.targetKana)}
-                  onIncorrectAnswer={(selected) => handleIncorrectAnswer(quizState.currentQuestion?.targetKana, selected)}
-                  onAnswered={handleAnswered}
-              />
-              <Text style={styles.questionNumber}>Question {quizState.questionIndex} (Reviewing: {currentReviewItems.length})</Text>
-              {/* <Button title="Next Question" onPress={nextQuestion} disabled={!quizState.hasAnswered} /> */}
-              <ResetDataButton onReset={handleResetData} />
-          </View>
+    return (
+      <View style={styles.container}>
+        <ProgressBar completed={completedCount} total={totalKanaCount} />
+        <ThreeChoiceQuestion
+          question={quizState.currentQuestion}
+          onCorrectAnswer={() => handleCorrectAnswer(quizState.currentQuestion?.targetKana)}
+          onIncorrectAnswer={(selected) => handleIncorrectAnswer(quizState.currentQuestion?.targetKana, selected)}
+          onAnswered={handleAnswered}
+        />
+        <Text style={styles.questionNumber}>Question {quizState.questionIndex} (Reviewing: {currentReviewItems.length})</Text>
+        {/* <Button title="Next Question" onPress={nextQuestion} disabled={!quizState.hasAnswered} /> */}
+        <ResetDataButton onReset={handleResetData} />
+      </View>
     );
   }
 
@@ -337,9 +359,9 @@ const KanaQuiz = () => {
 
 const styles = StyleSheet.create({
   container: {
-      flex: 1,
-      width: '100%',
-      justifyContent: 'flex-start',
+    flex: 1,
+    width: '100%',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     padding: 20,
   },
@@ -353,37 +375,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 10,
     textAlign: 'center',
-  },
-  progressBarContainer: {
-    width: '100%',
-    height: 40,
-    marginBottom: 60,
-      justifyContent: 'center',
-      alignItems: 'center',
-  },
-  progressBarBackground: {
-    backgroundColor: 'lightgray',
-    borderRadius: 20,
-      overflow: 'hidden',
-    width: '100%', // Ensure it fills the container
-    height: '100%', // Ensure it fills the container
-    justifyContent: 'center', // Center text horizontally
-    alignItems: 'center',    // Center text vertically
-  },
-  progressBarFill: {
-    backgroundColor: 'green',
-    height: '100%',
-    borderRadius: 20,
-      borderTopRightRadius: 0, // Remove top-right rounding
-      borderBottomRightRadius: 0, // Remove bottom-right rounding
-    position: 'absolute', // To control width independently
-    left: 0,
-  },
-  progressTextInside: {
-    position: 'absolute',
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: 'white',
   },
   questionNumber: {
     fontSize: 14,

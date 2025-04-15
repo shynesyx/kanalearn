@@ -9,6 +9,7 @@ interface Question {
 
 interface Props {
   question: Question;
+  onAnswered: () => void;
   onCorrectAnswer: () => void;
   onIncorrectAnswer: (selectedAnswer: string) => void;
 }
@@ -50,7 +51,7 @@ const ThreeChoiceQuestion: React.FC<Props> = ({
           setIsCorrect(false);
           setTimeout(()=>{
               console.log("incorrect");
-              onIncorrectAnswer();
+              onIncorrectAnswer(answer);
           }, 3000);
       }
   };
