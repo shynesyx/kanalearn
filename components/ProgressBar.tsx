@@ -34,23 +34,32 @@ const ProgressBar: React.FC<Props> = ({ completed, total }) => {
 
 const styles = StyleSheet.create({
   progressBarContainer: {
-    width: '100%',
+    width: '80%',
     height: 40,
     marginBottom: 60,
     justifyContent: 'center',
     alignItems: 'center',
   },
   progressBarBackground: {
-    backgroundColor: 'lightgray',
+    backgroundColor: 'transparent',
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#ccc',
     overflow: 'hidden',
     width: '100%',
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: "black",
+    shadowRadius: 3,
+    shadowOpacity: 1,
+    shadowOffset: {
+      width: 0.5,
+      height: 0.5,
+    }
   },
   progressBarFill: {
-    backgroundColor: 'green',
+    backgroundColor: '#1EE403',
     height: '100%',
     borderRadius: 20,
     borderTopRightRadius: 0,

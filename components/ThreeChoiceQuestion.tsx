@@ -16,6 +16,7 @@ interface Props {
 
 const ThreeChoiceQuestion: React.FC<Props> = ({
   question,
+  onAnswered,
   onCorrectAnswer,
   onIncorrectAnswer,
 }) => {
@@ -38,6 +39,8 @@ const ThreeChoiceQuestion: React.FC<Props> = ({
           return; // Prevent further interaction after answering
       }
 
+      onAnswered();
+
       setSelectedAnswer(answer);
       setIsAnswered(true);
 
@@ -46,7 +49,7 @@ const ThreeChoiceQuestion: React.FC<Props> = ({
           setTimeout(()=>{
               console.log("correct");
               onCorrectAnswer();
-          }, 500);
+          }, 1000);
       } else {
           setIsCorrect(false);
           setTimeout(()=>{
@@ -86,62 +89,65 @@ const ThreeChoiceQuestion: React.FC<Props> = ({
           </TouchableOpacity>
         ))}
       </View>
-
-      {/* {isAnswered && (
-          <Text style={styles.feedbackText}>
-          {isCorrect ? 'Correct!' : `Incorrect. The correct answer was: ${question.correctAnswer}`}
-          </Text>
-          )} */}
-    </View>
+   </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-      width: '100%',
-    borderRadius: 8,
-    backgroundColor: '#f0f0f0',
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0)',
     marginBottom: 20,
   },
   questionText: {
     fontSize: 80,
     fontWeight: 'bold',
+    marginTop: 20,
     marginBottom: 15,
+    color: "#dfdfdf",
     textAlign: 'center',
+    textShadowColor: 'black',
+    textShadowOffset: {
+      width: 2,
+      height: 2,
+    },
+    textShadowRadius: 3,
   },
   optionsContainer: {
-      /* flexDirection: 'row',
-       * justifyContent: 'space-around', */
       alignItems: 'center',
   },
   optionButton: {
-    backgroundColor: '#e0e0e0',
-    paddingVertical: 15,
+    backgroundColor: '#dfdfdf',
     paddingHorizontal: 20,
-    borderRadius: 8,
-      width: '80%',
+    paddingVertical: 10,
+    paddingBottom: 15,
+    borderRadius: 40,
+      width: '70%',
       marginBottom: 10,
     marginHorizontal: 5,
+    marginVertical: 15,
     alignItems: 'center',
+    shadowOpacity: .5,
+    shadowColor: "black",
+    shadowRadius: 3,
+    shadowOffset: {
+      width: 1.5,
+      height: 2,
+    }
   },
   optionText: {
-    fontSize: 40,
+    fontSize: 50,
+    color: "#5A35DF",
   },
   selectedOptionText: {
     fontWeight: 'bold',
   },
   correctAnswer: {
-    backgroundColor: 'green',
+    backgroundColor: '#1EE403',
   },
   incorrectAnswer: {
-    backgroundColor: 'red',
-  },
-  feedbackText: {
-    marginTop: 15,
-    textAlign: 'center',
-    fontWeight: 'bold',
-    fontSize: 16,
+    backgroundColor: 'salmon',
   },
 });
 
