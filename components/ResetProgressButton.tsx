@@ -1,12 +1,15 @@
 import React from 'react';
-import { View, Button, Alert } from 'react-native';
+import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Button from '@/components/Button';
 
 interface Props {
   onReset: () => void;
+  style?: any,
+  title?: string
 }
 
-const ResetDataButton: React.FC<Props> = ({ onReset }) => {
+const ResetDataButton: React.FC<Props> = ({ onReset, style, title }) => {
   const handleResetConfirmation = () => {
     Alert.alert(
       'Warning',
@@ -38,7 +41,14 @@ const ResetDataButton: React.FC<Props> = ({ onReset }) => {
   };
 
   return (
-    <Button title="Reset Learning Data" onPress={handleResetConfirmation} />
+    <Button 
+      title={title ? title : "Reset learning data"}
+      style={[{
+        fontSize: 16,
+        color: "crimson",
+        backgroundColor: "transparent",
+      }, style]}
+      onPress={handleResetConfirmation} />
   );
 };
 

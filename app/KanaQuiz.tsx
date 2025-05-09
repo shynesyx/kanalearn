@@ -33,7 +33,9 @@ interface KanaLearningData {
     incorrectStreak: number;
     lastReviewed: Date | null;
     interval: number; // In milliseconds
-    completionCount: number;
+    correctCount: number;
+    incorrectCount: number;
+    timeSpent: number; // In milliseconds
     isCompleted: boolean;
     targetSet: 'hiragana' | 'katakana' | 'dakuten' | 'yoon' | null;
 }
@@ -59,9 +61,11 @@ const KanaQuiz = () => {
     const [loading, setLoading] = useState(true);
     const [completedCount, setCompletedCount] = useState(0);
     const [resetTrigger, setResetTrigger] = useState(false);
-    const totalKanaCount = allKana.length;
-
+    const [startTime, setStartTime] = useState(null);
+    const [elapsedTime, setElapsedTime] = useState(null);
+    const isComponentMounted = useRef(true);
     const soundRef = useRef<Audio.Sound | null>(null);
+    const totalKanaCount = allKana.length;
 
     useEffect(() => {
         async function loadSound() {
@@ -117,7 +121,9 @@ const KanaQuiz = () => {
                     interval: typeof item.interval === 'string' ? parseInt(item.interval, 10) : item.interval,
                     correctStreak: typeof item.correctStreak === 'string' ? parseInt(item.correctStreak, 10) : item.correctStreak,
                     incorrectStreak: typeof item.incorrectStreak === 'string' ? parseInt(item.incorrectStreak, 10) : item.incorrectStreak,
-                    completionCount: typeof item.completionCount === 'string' ? parseInt(item.completionCount, 10) : item.completionCount,
+                    correctCount: typeof item.correctCount === 'string' ? parseInt(item.correctCount, 10) : item.correctCount,
+                    incorrectCount: typeof item.incorrectCount === 'string' ? parseInt(item.incorrectCount, 10) : item.incorrectCount,
+                    timeSpent: typeof item.timeSpent === "string" ? parseInt(item.timeSpent, 10): item.timeSpent,
                     isCompleted: typeof item.isCompleted === 'string' ? item.isCompleted === 'true' : item.isCompleted,
                 }));
                 setLearningData(processedData);
@@ -163,7 +169,9 @@ const KanaQuiz = () => {
             incorrectStreak: 0,
             lastReviewed: null,
             interval: 0, // Start with 0 interval for initial review
-            completionCount: 0,
+            correctCount: 0,
+            incorrectCount: 0,
+            timeSpent: 0,
             isCompleted: false,
             targetSet: determineTargetSet(kana.character),
         }));
@@ -323,7 +331,7 @@ const KanaQuiz = () => {
                     if (isCorrect) {
                         updatedItem.correctStreak++;
                         updatedItem.incorrectStreak = 0;
-                        updatedItem.completionCount++;
+                        updatedItem.correctCount++;
                         // Exponential interval increase
                         if (updatedItem.interval === 0) {
                             updatedItem.interval = oneMin; // 1 minutes for the first correct
@@ -340,7 +348,7 @@ const KanaQuiz = () => {
                         updatedItem.incorrectStreak++;
                         // Interval decrease (reset to a smaller value)
                         updatedItem.interval = Math.max(oneMin, updatedItem.interval / exponentialFactor); // Min 1 minutes
-                        updatedItem.completionCount = 0;
+                        updatedItem.incorrectCount++;
                         updatedItem.isCompleted = false; // Re-enable if incorrect
                     }
 
@@ -372,11 +380,13 @@ const KanaQuiz = () => {
         }
     };
 
+    console.log(quizState.hasAnswered);
+
     if (quizState.currentQuestion) {
         return (
             <LinearGradient colors={["#8166E2", "#ABA1A1"]} style={styles.container}>
                 {
-                    totalKanaCount === completedCount
+                    totalKanaCount === 214 // completedCount
                         ? <View style={styles.nextContainer}>
                             <Text style={styles.nextMessage}>Wow!{"\n"}You've completed!</Text>
                             < Link href="./review" replace asChild>

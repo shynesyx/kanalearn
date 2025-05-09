@@ -23,20 +23,6 @@ export default function HomeScreen() {
     };
 
     useEffect(() => {
-        const resetWelcome = async () => {
-            try {
-                await AsyncStorage.removeItem('doNotShowWelcome');
-                console.log('Welcome screen preference cleared');
-                setDoNotShowAgain(false);
-                setShowWelcome(true);
-            } catch (error) {
-                console.error('Error clearing welcome preference:', error);
-            }
-        };
-        resetWelcome();
-    }, []); // Run once on mount
-
-    useEffect(() => {
         fetchConfig(); // Load stored preference on mount
     }, []);
 

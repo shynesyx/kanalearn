@@ -1,7 +1,9 @@
-import React from 'react';
-import { Text, StyleSheet, ScrollView, View, TouchableOpacity } from 'react-native';
+import React, { useReducer } from 'react';
+import { Text, StyleSheet, ScrollView, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Button from '@/components/Button';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import ResetDataButton from '@/components/ResetProgressButton';
+import { useRouter } from 'expo-router';
 
 const hiragana = [
     ['あ\na', 'い\ni', 'う\nu', 'え\ne', 'お\no'],
@@ -110,6 +112,22 @@ const Table = ({ data }: Props) => (
 );
 
 const Review = () => {
+    const router = useRouter();
+
+    const handleReset = async () => {
+        // remove setting
+        try {
+            await AsyncStorage.removeItem('doNotShowWelcome');
+        } catch (e: unknown) {
+            if (e instanceof Error) {
+                console.error(e.message);
+            }
+        }
+
+        // go back to welcome screen
+        router.push('/');
+    };
+
     return (
         <LinearGradient
             colors={["#8166E2", "#ABA1A1"]}
@@ -180,14 +198,14 @@ const Review = () => {
                 </Text>
 
                 <Text style={styles.text}>
-                    ☕️ Additional resources::
+                    ☕️ Want to learn more about Japanes kana?
                     {"\n "}🌐 https://en.wikipedia.org/wiki/Kana
                     {"\n "}🌐 https://learnthekana.com/
                     {"\n "}🌐 https://kana-quiz.tofugu.com/
                     {"\n "}🌐 https://kana.pro/
                 </Text>
 
-                <Button title="Start Over" style={styles.button} onPress={()=>{}}/>
+                <ResetDataButton title="Start Over" style={styles.button} onReset={handleReset} />
 
             </ScrollView>
         </LinearGradient>
@@ -250,7 +268,10 @@ const styles = StyleSheet.create({
     },
     button: {
         marginVertical: 20,
-        borderRadius: 25, 
+        borderRadius: 25,
+        backgroundColor: 'crimson',
+        color: 'white',
+        fontSize: 24,
     }
 });
 
