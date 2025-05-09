@@ -1,9 +1,11 @@
-import React, { useReducer } from 'react';
-import { Text, StyleSheet, ScrollView, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Text, StyleSheet, ScrollView, View, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ResetDataButton from '@/components/ResetProgressButton';
 import { useRouter } from 'expo-router';
+import Button from '@/components/Button';
+import { KanaCharacter, KanaLearningData } from '@/data/types';
 
 const hiragana = [
     ['あ\na', 'い\ni', 'う\nu', 'え\ne', 'お\no'],
@@ -111,8 +113,43 @@ const Table = ({ data }: Props) => (
     </View>
 );
 
+const LEARNING_DATA_KEY = 'kanaLearningData';
+
 const Review = () => {
+    const [isModalVisible, setIsModalVisible] = useState(false);
+    const [learningData, setLearningData] = useState<KanaLearningData[]>([]);
     const router = useRouter();
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const storedData = await AsyncStorage.getItem(LEARNING_DATA_KEY);
+                if (storedData) {
+                    const parsedData: KanaLearningData[] = await JSON.parse(storedData);
+                    const processedData: KanaLearningData[] = parsedData.map(item => ({
+                        ...item,
+                        lastReviewed: item.lastReviewed ? new Date(item.lastReviewed) : null,
+                        correctStreak: typeof item.correctStreak === "string" ? parseInt(item.correctStreak, 10) : item.correctStreak,
+                        incorrectStreak: typeof item.incorrectStreak === "string" ? parseInt(item.incorrectStreak, 10) : item.incorrectStreak,
+                        interval: typeof item.interval === "string" ? parseInt(item.interval, 10) : item.interval,
+                        correctCount: typeof item.correctCount === "string" ? parseInt(item.correctCount, 10) : item.correctCount,
+                        incorrectCount: typeof item.incorrectCount === "string" ? parseInt(item.incorrectCount, 10) : item.incorrectCount,
+                        timeSpent: typeof item.timeSpent === "string" ? parseInt(item.timeSpent, 10) : item.timeSpent,
+                        isCompleted: typeof item.isCompleted === "string" ? item.isCompleted === "true" : item.isCompleted
+                    }));
+                    setLearningData(processedData);
+                } else {
+                    throw new Error("No stored learning data!");
+                }
+            } catch (e: unknown) {
+                if (e instanceof Error) {
+                    console.error(e.message);
+                }
+            }
+        };
+
+        fetchData();
+    }, []);
 
     const handleReset = async () => {
         // remove setting
@@ -128,13 +165,63 @@ const Review = () => {
         router.push('/');
     };
 
+    const round = (value: number, precision: number) => {
+        const pow = Math.pow(10, precision);
+        return Math.floor(value * pow) / pow;
+    };
+
+    const formatTime = (timeMs: number) => {
+        const s = timeMs / 1000;
+        if (s < 60) {
+            return `${round(s, 2)}s`;
+        } else if (s < 3600) {
+            return `${round(s / 60, 2)}m`;
+        } else {
+            return `${round(s / 3600, 2)}h`;
+        }
+    };
+
     return (
         <LinearGradient
             colors={["#8166E2", "#ABA1A1"]}
             style={styles.container}>
+
+            <Modal
+                visible={isModalVisible}
+                onRequestClose={() => setIsModalVisible(false)}
+                animationType='slide'
+                presentationStyle='pageSheet'
+            >
+                <View style={styles.modal}>
+                    <View style={[styles.row, {backgroundColor: '#8166E2'}]}>
+                        <View style={[styles.column, styles.modalColumn, {width: "20%"}]}><Text style={styles.modalCell}>kana</Text></View>
+                        <View style={[styles.column, styles.modalColumn]}><Text style={styles.modalCell}>correct</Text></View>
+                        <View style={[styles.column, styles.modalColumn]}><Text style={styles.modalCell}>incorrect</Text></View>
+                        <View style={[styles.column, styles.modalColumn, {width: "30%"}]}><Text style={styles.modalCell}>time spent</Text></View>
+                    </View>
+
+                    <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
+                        {
+                            learningData.map((item, index) => (
+                                <View key={index} style={styles.row}>
+                                    <View style={[styles.column, styles.modalColumn, {width: "20%"}]}><Text>{item.character}</Text></View>
+                                    <View style={[styles.column, styles.modalColumn]}><Text>{item.correctCount}</Text></View>
+                                    <View style={[styles.column, styles.modalColumn]}><Text>{item.incorrectCount}</Text></View>
+                                    <View style={[styles.column, styles.modalColumn, {width: "30%"}]}><Text>{formatTime(item.timeSpent)}</Text></View>
+                                </View>
+                            ))
+                        }
+                    </ScrollView>
+                </View>
+            </Modal>
+
             <ScrollView>
                 <Text style={styles.title}>Awesome</Text>
                 <Text style={[styles.text, styles.h1]}>You've made it!</Text>
+
+                <Button title="My Learning Statistics" style={styles.statsButton}
+                    onPress={() => setIsModalVisible(true)} />
+
                 <Text style={styles.text}>
                     Now let's see we've just learned{"\n"}
                 </Text>
@@ -272,7 +359,38 @@ const styles = StyleSheet.create({
         backgroundColor: 'crimson',
         color: 'white',
         fontSize: 24,
-    }
+    },
+    statsButton: {
+        fontSize: 20,
+        width: 220,
+        padding: 10,
+        marginBottom: 20,
+    },
+    modal: {
+        flex: 1,
+        height: '100%',
+        padding: 20,
+        textAlign: 'center',
+        backgroundColor: "#c4b8f0",
+        alignItems: 'center',
+        paddingTop: 30,
+        width: "100%",
+        margin: 0,
+    },
+    modalScroll: {
+        width: "100%",
+        margin: 0,
+    },
+    modalContent: {
+        alignItems: 'center',
+        margin: 0,
+    },
+    modalColumn: {
+        width: "25%",
+    },
+    modalCell: {
+        color: 'white', 
+    },
 });
 
 export default Review;

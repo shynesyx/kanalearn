@@ -3,42 +3,13 @@ import { StyleSheet, Text, View, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Link } from 'expo-router';
 import ThreeChoiceQuestion from '@/components/ThreeChoiceQuestion';
-import { hiragana, katakana, hiraganaWithDakutenHandakuten, katakanaWithDakutenHandakuten, hiraganaYoon, katakanaYoon, KanaCharacter } from '@/data/kanaData';
+import { KanaLearningData, Question, QuizState, KanaCharacter } from '@/data/types';
+import { hiragana, katakana, hiraganaWithDakutenHandakuten, katakanaWithDakutenHandakuten, hiraganaYoon, katakanaYoon } from '@/data/kanaData';
 import ResetDataButton from '@/components/ResetProgressButton';
 import ProgressBar from '@/components/ProgressBar';
 import { LinearGradient } from 'expo-linear-gradient'
 import { Audio } from 'expo-av';
 import Button from '@/components/Button';
-
-
-interface QuizState {
-    currentQuestion: Question | null;
-    questionIndex: number;
-    score: number;
-    showScore: boolean;
-    hasAnswered: boolean;
-}
-
-interface Question {
-    questionText: string;
-    questionSound: any;
-    correctAnswer: string;
-    options: string[];
-    targetKana: string;
-}
-
-interface KanaLearningData {
-    character: string;
-    correctStreak: number;
-    incorrectStreak: number;
-    lastReviewed: Date | null;
-    interval: number; // In milliseconds
-    correctCount: number;
-    incorrectCount: number;
-    timeSpent: number; // In milliseconds
-    isCompleted: boolean;
-    targetSet: 'hiragana' | 'katakana' | 'dakuten' | 'yoon' | null;
-}
 
 const allKana = [...hiragana, ...katakana, ...hiraganaWithDakutenHandakuten, ...katakanaWithDakutenHandakuten, ...hiraganaYoon, ...katakanaYoon];
 const hiraganaChars = hiragana.map(k => k.character);
@@ -61,11 +32,30 @@ const KanaQuiz = () => {
     const [loading, setLoading] = useState(true);
     const [completedCount, setCompletedCount] = useState(0);
     const [resetTrigger, setResetTrigger] = useState(false);
-    const [startTime, setStartTime] = useState(null);
-    const [elapsedTime, setElapsedTime] = useState(null);
-    const isComponentMounted = useRef(true);
+    const startTime = useRef<number | null>(null);
+    const elapsedTime = useRef<number | null>(null);
     const soundRef = useRef<Audio.Sound | null>(null);
     const totalKanaCount = allKana.length;
+
+    const calculateElapsedTime = () => {
+        if (startTime.current) {
+            const now = Date.now();
+            elapsedTime.current = now - startTime.current;
+            startTime.current = null;
+        } else {
+            elapsedTime.current = 0;
+        }
+    };
+
+    useEffect(() => {
+        const now = Date.now();
+        startTime.current = now;
+        elapsedTime.current = null;
+    }, [quizState.currentQuestion?.questionText]);
+
+    // ignore the time spent on a character entirely when
+    //   1. screen changes
+    //   2. app exits or goes to background
 
     useEffect(() => {
         async function loadSound() {
@@ -99,7 +89,7 @@ const KanaQuiz = () => {
     }, [quizState.currentQuestion?.questionText]);
 
     useEffect(() => {
-        loadLearningData();
+       loadLearningData();
     }, [resetTrigger]);
 
     useEffect(() => {
@@ -123,7 +113,7 @@ const KanaQuiz = () => {
                     incorrectStreak: typeof item.incorrectStreak === 'string' ? parseInt(item.incorrectStreak, 10) : item.incorrectStreak,
                     correctCount: typeof item.correctCount === 'string' ? parseInt(item.correctCount, 10) : item.correctCount,
                     incorrectCount: typeof item.incorrectCount === 'string' ? parseInt(item.incorrectCount, 10) : item.incorrectCount,
-                    timeSpent: typeof item.timeSpent === "string" ? parseInt(item.timeSpent, 10): item.timeSpent,
+                    timeSpent: typeof item.timeSpent === "string" ? parseInt(item.timeSpent, 10) : item.timeSpent,
                     isCompleted: typeof item.isCompleted === 'string' ? item.isCompleted === 'true' : item.isCompleted,
                 }));
                 setLearningData(processedData);
@@ -205,7 +195,7 @@ const KanaQuiz = () => {
         let i = 0;
         while (activeSet.length < 5) {
             activeSet = [...activeSet,
-                ...learningData.filter(item => item.targetSet === sets[i] && !item.isCompleted)
+            ...learningData.filter(item => item.targetSet === sets[i] && !item.isCompleted)
             ];
             i++;
         }
@@ -328,6 +318,9 @@ const KanaQuiz = () => {
                     const now = new Date().getTime();
                     updatedItem.lastReviewed = new Date(now);
 
+                    calculateElapsedTime();
+                    updatedItem.timeSpent += elapsedTime.current ?? 0;
+
                     if (isCorrect) {
                         updatedItem.correctStreak++;
                         updatedItem.incorrectStreak = 0;
@@ -380,13 +373,11 @@ const KanaQuiz = () => {
         }
     };
 
-    console.log(quizState.hasAnswered);
-
     if (quizState.currentQuestion) {
         return (
             <LinearGradient colors={["#8166E2", "#ABA1A1"]} style={styles.container}>
                 {
-                    totalKanaCount === 214 // completedCount
+                    totalKanaCount === completedCount
                         ? <View style={styles.nextContainer}>
                             <Text style={styles.nextMessage}>Wow!{"\n"}You've completed!</Text>
                             < Link href="./review" replace asChild>
@@ -403,6 +394,9 @@ const KanaQuiz = () => {
                             />
                             <Text style={styles.questionNumber}>Question {quizState.questionIndex} (Reviewing: {currentReviewItems.length})</Text>
                             {/* <Button title="Next Question" onPress={nextQuestion} disabled={!quizState.hasAnswered} /> */}
+                            {/* < Link href="./review" replace asChild>
+                                <Button title="Next" style={{ backgroundColor: "transparent", margin: 0, fontSize: 12, }} />
+                            </Link> */}
                             <ResetDataButton onReset={handleResetData} />
                         </>
                 }

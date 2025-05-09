@@ -1,8 +1,4 @@
-interface KanaCharacter {
-  character: string;
-  pronunciation: string;
-  audio: any;
-}
+import { KanaCharacter } from "./types";
 
 const hiragana: KanaCharacter[] = [
   { character: 'あ', pronunciation: 'a', audio: require("@/assets/audio/あ.mp3") },
