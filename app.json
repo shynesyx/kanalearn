@@ -15,7 +15,6 @@
         "ITSAppUsesNonExemptEncryption": false
       },
       "icon": "./assets/images/ka_1024.png"
-      }
     },
     "android": {
       "adaptiveIcon": {
