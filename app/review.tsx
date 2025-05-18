@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Text, StyleSheet, ScrollView, View, Modal } from 'react-native';
+import { Text, StyleSheet, ScrollView, View, Modal, Linking, TouchableOpacity } from 'react-native';
+import { Image } from "expo-image";
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ResetDataButton from '@/components/ResetProgressButton';
@@ -115,6 +116,9 @@ const Table = ({ data }: Props) => (
 
 const LEARNING_DATA_KEY = 'kanaLearningData';
 
+const buyMeCoffeUrl = 'https://buymeacoffee.com/novasphinx';
+
+
 const Review = () => {
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [learningData, setLearningData] = useState<KanaLearningData[]>([]);
@@ -181,6 +185,10 @@ const Review = () => {
         }
     };
 
+    const handleBuyMeCoffee = () => {
+        Linking.openURL(buyMeCoffeUrl).catch((err) => console.error("Error: ", err));
+    };
+
     return (
         <LinearGradient
             colors={["#8166E2", "#ABA1A1"]}
@@ -193,21 +201,21 @@ const Review = () => {
                 presentationStyle='pageSheet'
             >
                 <View style={styles.modal}>
-                    <View style={[styles.row, {backgroundColor: '#8166E2'}]}>
-                        <View style={[styles.column, styles.modalColumn, {width: "20%"}]}><Text style={styles.modalCell}>kana</Text></View>
+                    <View style={[styles.row, { backgroundColor: '#8166E2' }]}>
+                        <View style={[styles.column, styles.modalColumn, { width: "20%" }]}><Text style={styles.modalCell}>kana</Text></View>
                         <View style={[styles.column, styles.modalColumn]}><Text style={styles.modalCell}>correct</Text></View>
                         <View style={[styles.column, styles.modalColumn]}><Text style={styles.modalCell}>incorrect</Text></View>
-                        <View style={[styles.column, styles.modalColumn, {width: "30%"}]}><Text style={styles.modalCell}>time spent</Text></View>
+                        <View style={[styles.column, styles.modalColumn, { width: "30%" }]}><Text style={styles.modalCell}>time spent</Text></View>
                     </View>
 
                     <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalContent}>
                         {
                             learningData.map((item, index) => (
                                 <View key={index} style={styles.row}>
-                                    <View style={[styles.column, styles.modalColumn, {width: "20%"}]}><Text>{item.character}</Text></View>
+                                    <View style={[styles.column, styles.modalColumn, { width: "20%" }]}><Text>{item.character}</Text></View>
                                     <View style={[styles.column, styles.modalColumn]}><Text>{item.correctCount}</Text></View>
                                     <View style={[styles.column, styles.modalColumn]}><Text>{item.incorrectCount}</Text></View>
-                                    <View style={[styles.column, styles.modalColumn, {width: "30%"}]}><Text>{formatTime(item.timeSpent)}</Text></View>
+                                    <View style={[styles.column, styles.modalColumn, { width: "30%" }]}><Text>{formatTime(item.timeSpent)}</Text></View>
                                 </View>
                             ))
                         }
@@ -285,17 +293,27 @@ const Review = () => {
                 </Text>
 
                 <Text style={styles.text}>
-                    ☕️ Want to learn more about Japanes kana?
+                    🎯 Want to learn more about Japanes kana?
                     {"\n "}🌐 https://en.wikipedia.org/wiki/Kana
                     {"\n "}🌐 https://learnthekana.com/
                     {"\n "}🌐 https://kana-quiz.tofugu.com/
                     {"\n "}🌐 https://kana.pro/
                 </Text>
 
+                <View style={styles.buyMeCoffeeContainer}>
+                    <Text style={[styles.text, { fontWeight: 'bold', marginVertical: 10, fontSize: 24}]}>
+                        Finding useful?
+                    </Text>
+
+                    <TouchableOpacity onPress={handleBuyMeCoffee}>
+                        <Image source={require("../assets/images/coffee.png")} style={styles.coffeeIamge} />
+                    </TouchableOpacity>
+                </View>
+
                 <ResetDataButton title="Start Over" style={styles.button} onReset={handleReset} />
 
             </ScrollView>
-        </LinearGradient>
+        </LinearGradient >
     );
 };
 
@@ -389,7 +407,15 @@ const styles = StyleSheet.create({
         width: "25%",
     },
     modalCell: {
-        color: 'white', 
+        color: 'white',
+    },
+    buyMeCoffeeContainer: {
+        alignItems: 'center',
+    },
+    coffeeIamge: {
+        width: 220,
+        height: 60,
+        resizeMode: 'contain'
     },
 });
 
