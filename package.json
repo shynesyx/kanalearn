@@ -50,7 +50,6 @@
     "react-native-web": "^0.20.0",
     "react-native-webview": "13.13.5",
     "expo-image": "~2.1.7"
->>>>>>> a7e2059 (rename audio files)
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

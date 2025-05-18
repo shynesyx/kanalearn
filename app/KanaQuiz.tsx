@@ -398,9 +398,9 @@ const KanaQuiz = () => {
                             />
                             <Text style={styles.questionNumber}>Question {quizState.questionIndex} (Reviewing: {currentReviewItems.length})</Text>
                             {/* <Button title="Next Question" onPress={nextQuestion} disabled={!quizState.hasAnswered} /> */}
-                            < Link href="./review" replace asChild>
+                            {/* < Link href="./review" replace asChild>
                                 <Button title="Next" style={{ backgroundColor: "transparent", margin: 0, fontSize: 12, }} />
-                            </Link>
+                            </Link> */}
                             <ResetDataButton onReset={handleResetData} />
                         </>
                 }
